@@ -14,7 +14,7 @@ import { ClothingCatalogModal } from './components/ClothingCatalogModal';
 
 import { ChildProfile, ActivityType } from './types/child';
 import { WeatherData, CurrentWeather } from './types/weather';
-import { fetchWeather, getCurrentCoordinates, getFallbackWeatherData, reverseGeocode } from './services/weatherService';
+import { fetchWeather, getCurrentCoordinates, getFallbackWeatherData, reverseGeocode, searchLocations } from './services/weatherService';
 import { calculateChildAge, getDefaultChildProfile } from './utils/dateAndAge';
 import { isScheduleActiveOnDate, getScheduleRecurrenceLabel, getCombinedScheduleWindow, getOrderedUniqueLocations, DEFAULT_NO_ACTIVITY_SCHEDULE, formatLocalDate } from './utils/scheduleUtils';
 import { BookOpen, AlertCircle, CalendarCheck, Repeat, CheckSquare, Clock, Sparkles, MapPin, CalendarDays } from 'lucide-react';
@@ -27,6 +27,7 @@ const STORAGE_PROFILES_KEY = 'kiddie_weather_profiles_v1';
 const STORAGE_ACTIVE_ID_KEY = 'kiddie_weather_active_id_v1';
 const STORAGE_UNIT_KEY = 'kiddie_weather_unit_v1';
 const STORAGE_COORDS_KEY = 'kiddie_weather_coords_v1';
+const STORAGE_HOME_COORDS_KEY = 'kiddie_weather_home_coords_v1';
 
 export default function App() {
   // Profiles state
@@ -77,9 +78,21 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_COORDS_KEY);
       if (saved) return JSON.parse(saved);
     } catch {}
-    // Default: London (cosmopolitan default)
     return { lat: 51.5074, lon: -0.1278, name: 'London, United Kingdom' };
   });
+
+  // Home/default location — only updated when user explicitly changes location via modal
+  const [homeCoords, setHomeCoords] = useState<{ lat: number; lon: number; name?: string }>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_HOME_COORDS_KEY) || localStorage.getItem(STORAGE_COORDS_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { lat: 51.5074, lon: -0.1278, name: 'London, United Kingdom' };
+  });
+
+  const isAtActivityLocation =
+    Math.abs(currentCoords.lat - homeCoords.lat) > 0.001 ||
+    Math.abs(currentCoords.lon - homeCoords.lon) > 0.001;
 
   // Mobile frame view mode (helpful for desktop testing)
   const [isPhoneFrame, setIsPhoneFrame] = useState<boolean>(() => {
@@ -184,16 +197,39 @@ export default function App() {
     }
   };
 
-  // Switch location from modal
+  // Switch location from modal — updates both current and home
   const handleSelectCoordinates = (lat: number, lon: number, name: string) => {
     const newCoords = { lat, lon, name };
     setCurrentCoords(newCoords);
+    setHomeCoords(newCoords);
     try {
       localStorage.setItem(STORAGE_COORDS_KEY, JSON.stringify(newCoords));
+      localStorage.setItem(STORAGE_HOME_COORDS_KEY, JSON.stringify(newCoords));
     } catch (e) {
       console.warn('Failed to save coordinates to localStorage', e);
     }
     loadWeather(lat, lon, name);
+  };
+
+  // Jump to an activity location by name — only updates current, not home
+  const handleJumpToActivityLocation = async (locationName: string) => {
+    try {
+      const results = await searchLocations(locationName);
+      if (results.length > 0) {
+        const r = results[0];
+        const displayName = [r.name, r.admin1, r.country].filter(Boolean).join(', ');
+        setCurrentCoords({ lat: r.latitude, lon: r.longitude, name: displayName });
+        loadWeather(r.latitude, r.longitude, displayName);
+      }
+    } catch {
+      console.warn('Failed to geocode activity location:', locationName);
+    }
+  };
+
+  // Restore home location
+  const handleRestoreDefault = () => {
+    setCurrentCoords(homeCoords);
+    loadWeather(homeCoords.lat, homeCoords.lon, homeCoords.name);
   };
 
   // Active child profile & age calculation
@@ -544,6 +580,8 @@ export default function App() {
           onToggleUnit={handleToggleUnit}
           onToggleFrame={handleToggleFrame}
           onRefreshWeather={handleRefreshWeather}
+          isAtActivityLocation={isAtActivityLocation}
+          onRestoreDefault={handleRestoreDefault}
         />
 
         {/* Main Content Area */}
@@ -662,12 +700,29 @@ export default function App() {
                               ? 'Single Activity'
                               : 'Combined Plan'}
                           </span>
-                          <span className="text-[10px] text-indigo-800 font-semibold bg-white/80 px-2 py-0.5 rounded-md border border-indigo-200/70 shrink-0 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-indigo-600" />
+                          <span className="flex items-center gap-1 flex-wrap">
+                            <MapPin className="w-3 h-3 text-indigo-600 shrink-0" />
                             {getOrderedUniqueLocations(
                               selectedSchedules,
                               activeChild.location?.trim() || weatherData?.locationName || currentCoords.name || 'Local Area'
-                            ).join(' • ')}
+                            ).map((loc, i) => {
+                              const defaultLoc = (activeChild.location?.trim() || weatherData?.locationName || currentCoords.name || 'Local Area').trim();
+                              const isNonDefault = loc.toLowerCase() !== defaultLoc.toLowerCase();
+                              return isNonDefault ? (
+                                <button
+                                  key={i}
+                                  onClick={() => handleJumpToActivityLocation(loc)}
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md border cursor-pointer bg-indigo-100 border-indigo-300 hover:bg-indigo-200 text-indigo-900 transition-colors"
+                                  title={`Jump to weather for ${loc}`}
+                                >
+                                  {loc}
+                                </button>
+                              ) : (
+                                <span key={i} className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-white/80 border-indigo-200/70 text-indigo-800">
+                                  {loc}
+                                </span>
+                              );
+                            })}
                           </span>
                         </div>
                         {activeSchedulesForDay.length === 1 && (

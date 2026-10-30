@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, RefreshCw, Smartphone, Monitor, ChevronDown, User, Sparkles } from 'lucide-react';
+import { MapPin, RefreshCw, Smartphone, Monitor, ChevronDown, Home } from 'lucide-react';
 import { ChildProfile, ChildAgeCalculation } from '../types/child';
 
 interface HeaderProps {
@@ -14,6 +14,8 @@ interface HeaderProps {
   onToggleUnit: () => void;
   onToggleFrame: () => void;
   onRefreshWeather: () => void;
+  isAtActivityLocation?: boolean;
+  onRestoreDefault?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleUnit,
   onToggleFrame,
   onRefreshWeather,
+  isAtActivityLocation,
+  onRestoreDefault,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2.5 transition-colors shadow-2xs" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 10px)' }}>
@@ -88,20 +92,33 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Tier 2: Dedicated Full-Width Location Bar (Never overlaps child name) */}
-        <button
-          onClick={onOpenLocationSearch}
-          className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100/90 hover:bg-slate-200/90 rounded-xl transition-colors border border-slate-200/70 group"
-          title="Change weather location or use GPS"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <MapPin className="w-3.5 h-3.5 text-sky-600 shrink-0 group-hover:scale-110 transition-transform" />
+        {/* Tier 2: Dedicated Full-Width Location Bar */}
+        <div className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100/90 rounded-xl border border-slate-200/70">
+          <button
+            onClick={onOpenLocationSearch}
+            className="flex items-center gap-2 min-w-0 hover:opacity-75 transition-opacity"
+            title="Change weather location or use GPS"
+          >
+            <MapPin className="w-3.5 h-3.5 text-sky-600 shrink-0" />
             <span className="font-semibold text-slate-800 truncate">{locationName}</span>
-          </div>
-          <span className="text-[10px] text-sky-700 font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200/80 shrink-0 shadow-2xs">
-            Change Location
-          </span>
-        </button>
+          </button>
+          {isAtActivityLocation && onRestoreDefault ? (
+            <button
+              onClick={onRestoreDefault}
+              className="text-[10px] text-indigo-700 font-bold bg-white hover:bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 shrink-0 shadow-2xs transition-colors flex items-center gap-1"
+              title="Return to home location"
+            >
+              <Home className="w-3 h-3" /> Home
+            </button>
+          ) : (
+            <button
+              onClick={onOpenLocationSearch}
+              className="text-[10px] text-sky-700 font-bold bg-white hover:bg-sky-50 px-2 py-0.5 rounded-md border border-slate-200/80 shrink-0 shadow-2xs transition-colors"
+            >
+              Change Location
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

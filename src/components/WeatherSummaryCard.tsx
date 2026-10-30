@@ -231,7 +231,7 @@ export const WeatherSummaryCard: React.FC<WeatherSummaryCardProps> = ({
 
             <div className="mt-1">
               <div className="text-base sm:text-lg font-extrabold text-slate-900 font-mono tabular-nums leading-tight">
-                {rainProbabilities.length > 0 ? `${rainProbabilities[0]}%` : `${current.precipitation > 0 ? 80 : 0}%`}
+                {rainProbabilities.length > 0 ? `${rainProbabilities[Math.min(currentClockHour, rainProbabilities.length - 1)]}%` : `${current.precipitation > 0 ? 80 : 0}%`}
               </div>
               <div className="text-[10px] text-slate-600 font-mono tabular-nums flex items-center gap-1 mt-0.5">
                 <span className="flex items-center text-rose-600 font-semibold" title="Max Rain Risk">
@@ -264,7 +264,7 @@ export const WeatherSummaryCard: React.FC<WeatherSummaryCardProps> = ({
 
             <div className="mt-1">
               <div className="text-base sm:text-lg font-extrabold text-slate-900 font-mono tabular-nums leading-tight">
-                {formatWind(current.windSpeed)}
+                {formatWind(windSpeeds.length > 0 ? windSpeeds[Math.min(currentClockHour, windSpeeds.length - 1)] : current.windSpeed)}
               </div>
               <div className="text-[10px] text-slate-600 font-mono tabular-nums flex items-center gap-1 mt-0.5">
                 <span className="flex items-center text-rose-600 font-semibold" title="Max Wind Speed">
