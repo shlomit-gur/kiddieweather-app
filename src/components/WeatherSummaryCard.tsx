@@ -297,7 +297,7 @@ export const WeatherSummaryCard: React.FC<WeatherSummaryCardProps> = ({
 
             <div className="mt-1">
               <div className="text-base sm:text-lg font-extrabold text-slate-900 font-mono tabular-nums leading-tight flex items-center gap-1">
-                <span>{Math.round(current.uvIndex ?? 0)}</span>
+                <span>{uvValues.length > 0 ? Math.round(uvValues[Math.min(currentClockHour, uvValues.length - 1)]) : Math.round(current.uvIndex ?? 0)}</span>
                 <span
                   className={`text-[9.5px] font-bold px-1 py-0.2 rounded ${
                     maxUv <= 2
