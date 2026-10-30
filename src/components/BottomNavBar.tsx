@@ -17,7 +17,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onChangeT
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 transition-colors">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 transition-colors" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="max-w-md mx-auto grid grid-cols-4 items-center h-16 px-2">
         {tabs.map((t) => {
           const isSelected = activeTab === t.id;
