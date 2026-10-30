@@ -1,0 +1,863 @@
+
+{
+  "catalogVersion": 1,
+  "propertyScales": {
+    "insulation": ["low", "medium", "high"],
+    "breathability": ["low", "medium", "high"],
+    "waterProtection": ["none", "low", "medium", "high"],
+    "windProtection": ["none", "low", "medium", "high"],
+    "sunProtection": ["none", "low", "medium", "high"],
+    "coverage": ["minimal", "partial", "full"]
+  },
+  "categories": [
+    {
+      "id": "tops",
+      "label": {
+        "en": "Tops",
+        "he": "חולצות"
+      },
+      "items": [
+        {
+          "id": "sleeveless_top",
+          "label": {
+            "en": "Sleeveless top",
+            "he": "חולצה ללא שרוולים"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "low",
+            "coverage": "minimal"
+          }
+        },
+        {
+          "id": "short_sleeve_tshirt",
+          "label": {
+            "en": "Short-sleeved T-shirt",
+            "he": "חולצה קצרה"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "low",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "thin_long_sleeve_shirt",
+          "label": {
+            "en": "Thin long-sleeved shirt",
+            "he": "חולצה ארוכה דקה"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "thick_long_sleeve_top",
+          "label": {
+            "en": "Thick long-sleeved top",
+            "he": "חולצה ארוכה עבה"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "thermal_base_layer_top",
+          "label": {
+            "en": "Thermal base-layer top",
+            "he": "חולצה תרמית"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        }
+      ]
+    },
+    {
+      "id": "baby_clothing",
+      "label": {
+        "en": "Baby clothing",
+        "he": "בגדי תינוקות"
+      },
+      "items": [
+        {
+          "id": "baby_bodysuit_sleeveless",
+          "label": {
+            "en": "Sleeveless baby bodysuit",
+            "he": "בגד גוף לתינוק ללא שרוולים"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "low",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "baby_bodysuit_short_sleeve",
+          "label": {
+            "en": "Short-sleeved baby bodysuit",
+            "he": "בגד גוף לתינוק עם שרוול קצר"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "low",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "baby_bodysuit_long_sleeve",
+          "label": {
+            "en": "Long-sleeved baby bodysuit",
+            "he": "בגד גוף לתינוק עם שרוול ארוך"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "baby_romper",
+          "label": {
+            "en": "Baby romper",
+            "he": "אוברול לתינוק"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bottoms",
+      "label": {
+        "en": "Bottoms",
+        "he": "מכנסיים"
+      },
+      "items": [
+        {
+          "id": "lightweight_long_trousers",
+          "label": {
+            "en": "Lightweight long trousers",
+            "he": "מכנסיים ארוכים דקים"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "regular_long_trousers",
+          "label": {
+            "en": "Regular long trousers",
+            "he": "מכנסיים ארוכים רגילים"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "sweatpants",
+          "label": {
+            "en": "Sweatpants / joggers",
+            "he": "מכנסי טרנינג"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "fleece_lined_trousers",
+          "label": {
+            "en": "Fleece-lined trousers",
+            "he": "מכנסיים מרופדים"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "high",
+            "breathability": "low",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "thermal_leggings",
+          "label": {
+            "en": "Thermal leggings / long underwear",
+            "he": "טייץ תרמי / שכבה תרמית לרגליים"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "shorts",
+          "label": {
+            "en": "Shorts",
+            "he": "מכנסיים קצרים"
+          },
+          "layerRole": "base",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "low",
+            "coverage": "minimal"
+          }
+        },
+        {
+          "id": "waterproof_overtrousers",
+          "label": {
+            "en": "Waterproof overtrousers",
+            "he": "מכנסיים עמידים למים ללבישה מעל הבגדים"
+          },
+          "layerRole": "outer",
+          "properties": {
+            "insulation": "low",
+            "breathability": "low",
+            "waterProtection": "high",
+            "windProtection": "high",
+            "sunProtection": "medium",
+            "coverage": "full"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mid_layers",
+      "label": {
+        "en": "Warm mid-layers",
+        "he": "שכבות ביניים מחממות"
+      },
+      "items": [
+        {
+          "id": "light_cardigan",
+          "label": {
+            "en": "Lightweight cardigan",
+            "he": "קרדיגן דק"
+          },
+          "layerRole": "mid",
+          "properties": {
+            "insulation": "low",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "sweatshirt",
+          "label": {
+            "en": "Sweatshirt",
+            "he": "סווטשירט"
+          },
+          "layerRole": "mid",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "hoodie",
+          "label": {
+            "en": "Hoodie",
+            "he": "קפוצ'ון"
+          },
+          "layerRole": "mid",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "fleece_jacket",
+          "label": {
+            "en": "Fleece jacket",
+            "he": "מעיל פליז"
+          },
+          "layerRole": "mid",
+          "properties": {
+            "insulation": "high",
+            "breathability": "high",
+            "waterProtection": "low",
+            "windProtection": "low",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "knitted_sweater",
+          "label": {
+            "en": "Knitted / wool sweater",
+            "he": "סוודר סרוג / צמר"
+          },
+          "layerRole": "mid",
+          "properties": {
+            "insulation": "high",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "insulated_vest",
+          "label": {
+            "en": "Insulated vest",
+            "he": "וסט מחמם"
+          },
+          "layerRole": "mid",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "low",
+            "windProtection": "medium",
+            "sunProtection": "low",
+            "coverage": "partial"
+          }
+        }
+      ]
+    },
+    {
+      "id": "outerwear",
+      "label": {
+        "en": "Outerwear",
+        "he": "ביגוד עליון"
+      },
+      "items": [
+        {
+          "id": "light_windbreaker",
+          "label": {
+            "en": "Lightweight windbreaker",
+            "he": "מעיל רוח דק"
+          },
+          "layerRole": "outer",
+          "properties": {
+            "insulation": "low",
+            "breathability": "medium",
+            "waterProtection": "low",
+            "windProtection": "high",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "light_rain_jacket",
+          "label": {
+            "en": "Lightweight waterproof rain jacket",
+            "he": "מעיל גשם קל"
+          },
+          "layerRole": "outer",
+          "properties": {
+            "insulation": "low",
+            "breathability": "medium",
+            "waterProtection": "high",
+            "windProtection": "high",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "insulated_jacket",
+          "label": {
+            "en": "Insulated jacket",
+            "he": "מעיל מחמם"
+          },
+          "layerRole": "outer",
+          "properties": {
+            "insulation": "high",
+            "breathability": "medium",
+            "waterProtection": "low",
+            "windProtection": "medium",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "heavy_winter_coat",
+          "label": {
+            "en": "Heavy winter coat",
+            "he": "מעיל חורף עבה"
+          },
+          "layerRole": "outer",
+          "properties": {
+            "insulation": "high",
+            "breathability": "low",
+            "waterProtection": "low",
+            "windProtection": "high",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "waterproof_insulated_jacket",
+          "label": {
+            "en": "Waterproof insulated jacket",
+            "he": "מעיל מחמם ועמיד למים"
+          },
+          "layerRole": "outer",
+          "properties": {
+            "insulation": "high",
+            "breathability": "medium",
+            "waterProtection": "high",
+            "windProtection": "high",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "baby_snowsuit",
+          "label": {
+            "en": "Insulated baby snowsuit",
+            "he": "אוברול חורף מרופד לתינוק"
+          },
+          "layerRole": "outer",
+          "properties": {
+            "insulation": "high",
+            "breathability": "low",
+            "waterProtection": "medium",
+            "windProtection": "high",
+            "sunProtection": "low",
+            "coverage": "full"
+          }
+        }
+      ]
+    },
+    {
+      "id": "footwear",
+      "label": {
+        "en": "Footwear",
+        "he": "הנעלה"
+      },
+      "items": [
+        {
+          "id": "thin_socks",
+          "label": {
+            "en": "Thin everyday socks",
+            "he": "גרביים דקות"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "none",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "thermal_socks",
+          "label": {
+            "en": "Thick / thermal socks",
+            "he": "גרביים עבות / תרמיות"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "high",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "none",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "breathable_sneakers",
+          "label": {
+            "en": "Breathable sneakers",
+            "he": "נעלי ספורט מאווררות"
+          },
+          "layerRole": "footwear",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "low",
+            "windProtection": "low",
+            "sunProtection": "none",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "closed_toe_shoes",
+          "label": {
+            "en": "Everyday closed-toe shoes",
+            "he": "נעליים סגורות ליום-יום"
+          },
+          "layerRole": "footwear",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "low",
+            "windProtection": "medium",
+            "sunProtection": "none",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "sandals",
+          "label": {
+            "en": "Sandals",
+            "he": "סנדלים"
+          },
+          "layerRole": "footwear",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "low",
+            "windProtection": "none",
+            "sunProtection": "none",
+            "coverage": "minimal"
+          }
+        },
+        {
+          "id": "rain_boots",
+          "label": {
+            "en": "Waterproof rain boots",
+            "he": "מגפי גשם"
+          },
+          "layerRole": "footwear",
+          "properties": {
+            "insulation": "low",
+            "breathability": "low",
+            "waterProtection": "high",
+            "windProtection": "high",
+            "sunProtection": "none",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "insulated_winter_boots",
+          "label": {
+            "en": "Insulated winter boots",
+            "he": "מגפי חורף מחממים"
+          },
+          "layerRole": "footwear",
+          "properties": {
+            "insulation": "high",
+            "breathability": "low",
+            "waterProtection": "medium",
+            "windProtection": "high",
+            "sunProtection": "none",
+            "coverage": "full"
+          }
+        },
+        {
+          "id": "water_shoes",
+          "label": {
+            "en": "Water shoes",
+            "he": "נעלי מים"
+          },
+          "layerRole": "footwear",
+          "properties": {
+            "insulation": "low",
+            "breathability": "medium",
+            "waterProtection": "medium",
+            "windProtection": "none",
+            "sunProtection": "none",
+            "coverage": "partial"
+          }
+        }
+      ]
+    },
+    {
+      "id": "headwear",
+      "label": {
+        "en": "Headwear",
+        "he": "כיסויי ראש"
+      },
+      "items": [
+        {
+          "id": "wide_brim_sun_hat",
+          "label": {
+            "en": "Wide-brimmed sun hat",
+            "he": "כובע שמש רחב שוליים"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "low",
+            "windProtection": "none",
+            "sunProtection": "high",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "baseball_cap",
+          "label": {
+            "en": "Baseball cap",
+            "he": "כובע מצחייה"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "low",
+            "breathability": "high",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "medium",
+            "coverage": "minimal"
+          }
+        },
+        {
+          "id": "lightweight_beanie",
+          "label": {
+            "en": "Lightweight beanie",
+            "he": "כובע סרוג דק"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "none",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "warm_knit_beanie",
+          "label": {
+            "en": "Warm knit beanie",
+            "he": "כובע צמר חם"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "high",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "medium",
+            "sunProtection": "none",
+            "coverage": "partial"
+          }
+        }
+      ]
+    },
+    {
+      "id": "other_accessories",
+      "label": {
+        "en": "Other accessories",
+        "he": "אביזרים נוספים"
+      },
+      "items": [
+        {
+          "id": "light_gloves",
+          "label": {
+            "en": "Lightweight gloves",
+            "he": "כפפות דקות"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "low",
+            "breathability": "medium",
+            "waterProtection": "low",
+            "windProtection": "low",
+            "sunProtection": "none",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "insulated_mittens",
+          "label": {
+            "en": "Insulated mittens",
+            "he": "כפפות חמות"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "high",
+            "breathability": "low",
+            "waterProtection": "medium",
+            "windProtection": "high",
+            "sunProtection": "none",
+            "coverage": "partial"
+          }
+        },
+        {
+          "id": "sunglasses",
+          "label": {
+            "en": "UV-protective sunglasses",
+            "he": "משקפי שמש עם הגנת UV"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "none",
+            "breathability": "none",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "high",
+            "coverage": "minimal"
+          }
+        },
+        {
+          "id": "stroller_blanket",
+          "label": {
+            "en": "Stroller blanket",
+            "he": "שמיכה לעגלה"
+          },
+          "layerRole": "accessory",
+          "properties": {
+            "insulation": "medium",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "none",
+            "coverage": "partial"
+          },
+          "safetyNotes": [
+            "For appropriate awake, supervised use only.",
+            "Never use a loose blanket in an infant sleep space."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "water_activities",
+      "label": {
+        "en": "Water activities",
+        "he": "ביגוד לפעילויות מים"
+      },
+      "items": [
+        {
+          "id": "swimsuit",
+          "label": {
+            "en": "Swimsuit",
+            "he": "בגד ים"
+          },
+          "layerRole": "special_purpose",
+          "properties": {
+            "insulation": "low",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "none",
+            "sunProtection": "low",
+            "coverage": "minimal"
+          }
+        },
+        {
+          "id": "uv_rash_guard",
+          "label": {
+            "en": "UV-protective rash guard",
+            "he": "חולצת שחייה עם הגנת UV"
+          },
+          "layerRole": "special_purpose",
+          "properties": {
+            "insulation": "low",
+            "breathability": "medium",
+            "waterProtection": "none",
+            "windProtection": "low",
+            "sunProtection": "high",
+            "coverage": "full"
+          }
+        }
+      ]
+    }
+  ],
+  "nonClothingProducts": [
+    {
+      "id": "sunscreen",
+      "label": {
+        "en": "Sunscreen",
+        "he": "קרם הגנה מהשמש"
+      },
+      "purpose": "sun_protection",
+      "ageSpecificGuidanceRequired": true
+    },
+    {
+      "id": "insect_repellent",
+      "label": {
+        "en": "Insect repellent",
+        "he": "תכשיר דוחה חרקים"
+      },
+      "purpose": "insect_protection",
+      "ageSpecificGuidanceRequired": true
+    },
+    {
+      "id": "umbrella",
+      "label": {
+        "en": "Umbrella",
+        "he": "מטרייה"
+      },
+      "purpose": "rain_protection"
+    }
+  ]
+}
