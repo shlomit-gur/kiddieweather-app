@@ -20,7 +20,7 @@ import { isScheduleActiveOnDate, getScheduleRecurrenceLabel, getCombinedSchedule
 import { BookOpen, AlertCircle, AlertTriangle, RefreshCw, CalendarCheck, Repeat, CheckSquare, Clock, Sparkles, MapPin, CalendarDays } from 'lucide-react';
 import { populateRecommendationFromAiPlan } from './services/populateSuggestionFromEngine';
 import { generateClothingRecommendation } from './services/clothingRecommender';
-import { getClothingSuggestion } from './services/suggestionEngineService';
+import { getClothingSuggestion, getAiDebugLog, clearAiDebugLog } from './services/suggestionEngineService';
 import { AiOutfitPlan } from './types/suggestionEngine';
 
 const STORAGE_PROFILES_KEY = 'kiddie_weather_profiles_v1';
@@ -449,6 +449,8 @@ export default function App() {
   const [aiTimestamp, setAiTimestamp] = useState<number | undefined>(undefined);
   const [aiStatusMessage, setAiStatusMessage] = useState<string>('');
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiDiagLog, setAiDiagLog] = useState<string>('');
+  const [showAiDiag, setShowAiDiag] = useState(false);
 
   // Clothing suggestion populated directly from Suggestion Engine response (instead of naive approach)
   // Displayed based on currently selected activities from the cached plan
@@ -534,6 +536,9 @@ export default function App() {
       setIsAiLoading(true);
       setAiStatusMessage('Querying suggestion engine…');
       setAiError(null);
+      setAiDiagLog('');
+      setShowAiDiag(false);
+      clearAiDebugLog();
       getClothingSuggestion({
         child: activeChild,
         activities: activitiesToPlan,
@@ -550,6 +555,7 @@ export default function App() {
           aiLoadingRef.current = false;
           if (res.engineFailed) {
             setAiError('Couldn\'t reach the suggestion engine. Try again in a couple of minutes.');
+            setAiDiagLog(getAiDebugLog());
             setIsAiCached(true);
           } else {
             setAiError(null);
@@ -566,6 +572,7 @@ export default function App() {
           console.error('Failed to get AI clothing suggestion:', err);
           const errMsg = err?.message || String(err) || 'Unknown error';
           setAiError(`Error: ${errMsg}`);
+          setAiDiagLog(getAiDebugLog());
           setIsAiCached(true);
           setIsAiLoading(false);
           setAiStatusMessage('');
@@ -936,6 +943,21 @@ export default function App() {
                   >
                     <RefreshCw className="w-3.5 h-3.5" /> Retry
                   </button>
+                  {aiDiagLog && (
+                    <div className="w-full text-left">
+                      <button
+                        onClick={() => setShowAiDiag((v) => !v)}
+                        className="text-xs text-slate-400 underline"
+                      >
+                        {showAiDiag ? 'Hide' : 'Show'} diagnostic log
+                      </button>
+                      {showAiDiag && (
+                        <pre className="mt-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-[10px] text-slate-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
+                          {aiDiagLog}
+                        </pre>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : recommendation ? (
                 <>

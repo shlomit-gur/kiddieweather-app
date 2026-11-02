@@ -14,6 +14,27 @@ import {
 const CACHE_PREFIX = 'kiddie_suggestion_cache_v4_';
 
 // ---------------------------------------------------------------------------
+// In-memory diagnostic log (circular, max 40 lines)
+// ---------------------------------------------------------------------------
+const AI_LOG_BUFFER: string[] = [];
+const AI_LOG_MAX = 40;
+
+function aiLog(msg: string): void {
+  const entry = new Date().toISOString().slice(11, 23) + '  ' + msg;
+  AI_LOG_BUFFER.push(entry);
+  if (AI_LOG_BUFFER.length > AI_LOG_MAX) AI_LOG_BUFFER.shift();
+  console.log('[AI]', msg);
+}
+
+export function getAiDebugLog(): string {
+  return AI_LOG_BUFFER.join('\n');
+}
+
+export function clearAiDebugLog(): void {
+  AI_LOG_BUFFER.length = 0;
+}
+
+// ---------------------------------------------------------------------------
 // Client-side AI engine (Pollinations AI — no API key, uses device IP)
 // ---------------------------------------------------------------------------
 
@@ -109,12 +130,12 @@ async function callPollinationsAI(
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.warn(`[AI] attempt ${attempt}: timeout after ${TIMEOUT_MS}ms — aborting`);
+      aiLog(`attempt ${attempt}: timeout after ${TIMEOUT_MS}ms — aborting`);
       controller.abort();
     }, TIMEOUT_MS);
 
     try {
-      console.log(`[AI] attempt ${attempt}/${MAX_ATTEMPTS}: sending request (prompt=${promptText.length} chars)`);
+      aiLog(`attempt ${attempt}/${MAX_ATTEMPTS}: sending request (prompt=${promptText.length} chars)`);
       const res = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,27 +147,27 @@ async function callPollinationsAI(
         }),
         signal: controller.signal,
       });
-      console.log(`[AI] attempt ${attempt}: status=${res.status}`);
+      aiLog(`attempt ${attempt}: status=${res.status}`);
 
       if (res.ok) {
         const text = await res.text();
         clearTimeout(timeoutId);
-        console.log(`[AI] attempt ${attempt}: body.length=${text.length}, head=${text.slice(0, 120)}`);
+        aiLog(`attempt ${attempt}: body.length=${text.length}, head=${text.slice(0, 120)}`);
         const plan = extractJsonPlan(text);
-        console.log(`[AI] attempt ${attempt}: parse=${plan ? 'OK' : 'FAILED'}`);
+        aiLog(`attempt ${attempt}: parse=${plan ? 'OK' : 'FAILED'}`);
         if (plan) return plan;
       } else {
         clearTimeout(timeoutId);
         const errBody = await res.text().catch(() => '');
-        console.warn(`[AI] attempt ${attempt}: HTTP ${res.status} — ${errBody.slice(0, 150)}`);
+        aiLog(`attempt ${attempt}: HTTP ${res.status} — ${errBody.slice(0, 150)}`);
       }
     } catch (err: unknown) {
       clearTimeout(timeoutId);
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[AI] attempt ${attempt}: error — ${msg}`);
+      aiLog(`attempt ${attempt}: error — ${msg}`);
     }
   }
-  console.warn('[AI] all attempts exhausted — returning null');
+  aiLog('all attempts exhausted — returning null');
   return null;
 }
 
@@ -598,10 +619,10 @@ export async function getClothingSuggestion(params: {
       .replace('{{WEATHER_JSON}}', JSON.stringify(compactWeatherForPrompt(weather_by_activity)))
       .replace('{{WARDROBE}}', JSON.stringify(compactCatalogForPrompt(wardrobe_list)));
 
-    console.log('[AI] prompt built, length=', prompt.length);
+    aiLog(`prompt built, length=${prompt.length}`);
     generatedPlan = await callPollinationsAI(prompt, onStatusUpdate);
   } catch (err: unknown) {
-    console.error('[AI] unexpected error in suggestion block:', err instanceof Error ? err.message : String(err));
+    aiLog(`unexpected error: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // 4. Engine failed after all retries — signal failure without overwriting the existing cache
