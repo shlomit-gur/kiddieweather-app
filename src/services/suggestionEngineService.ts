@@ -13,6 +13,127 @@ import {
 
 const CACHE_PREFIX = 'kiddie_suggestion_cache_v4_';
 
+// ---------------------------------------------------------------------------
+// Client-side AI engine (Pollinations AI — no API key, uses device IP)
+// ---------------------------------------------------------------------------
+
+const OUTFIT_PROMPT_TEMPLATE = `You are a parenting assistant. Generate a weather-appropriate clothing plan for the child's activities.
+
+### RULES:
+1. \`wear_on_start\` MUST include ALL THREE: (a) a top/upper garment, (b) bottoms (trousers/shorts/leggings), (c) footwear. Never omit any group.
+2. \`pack_and_carry\` MUST cover only conditions during the activity window (start_time–end_time). Never pack layers for temperature drops after the activity ends, or gear for weather before it starts.
+3. All items in \`wear_on_start\` and \`pack_and_carry\` MUST be from the wardrobe.
+4. Evaluate mosquito repellent per activity based on outdoor exposure, greenery, water proximity, and timing.
+5. Exclude umbrella and sunscreen from \`wear_on_start\` and \`pack_and_carry\`.
+6. Do NOT suggest spare or backup changes of clothes.
+7. Use each activity's \`location\` to account for local conditions (coastal breeze, indoor climate, park shade, open playground, etc.).
+8. Output MUST be valid raw JSON only — no markdown, no explanatory text.
+
+### JSON SCHEMA:
+{"plan_date":"YYYY-MM-DD","activities":[{"activity_name":"string","location":"string","time_window":"string","wear_on_start":[{"item":"string"}],"pack_and_carry":[{"item":"string","appropriate_when":"string"}],"mosquito_repellent":{"needed":true,"hours":"string","reason":"string"}}]}
+
+---
+<child>{{CHILD_INFO}}</child>
+
+<activities>
+{{ACTIVITIES_TO_CONSIDER}}
+</activities>
+
+<weather>
+Compact JSON per activity (fieldOrder+rows if present). WMO codes: 0–3 clear/cloudy, 45–48 fog, 51–67 rain, 71–77 snow, 80–86 showers, 95–99 thunderstorm.
+{{WEATHER_JSON}}
+</weather>
+
+<wardrobe>
+Compact JSON: \`fieldOrder\` names the fields; \`categories\` maps each category to rows of values in that order (id, role, ins=insulation, br=breathability, wp=waterProtection, wi=windProtection, sp=sunProtection, cov=coverage). Only use items listed here.
+{{WARDROBE}}
+</wardrobe>`;
+
+function compactCatalogForPrompt(catalog: { categories?: any[] }): Record<string, any> {
+  const PROP_KEYS = ['insulation', 'breathability', 'waterProtection', 'windProtection', 'sunProtection', 'coverage'];
+  const ABBREV: Record<string, string> = { insulation: 'ins', breathability: 'br', waterProtection: 'wp', windProtection: 'wi', sunProtection: 'sp', coverage: 'cov' };
+  const fieldOrder = ['id', 'role', ...PROP_KEYS.map((p) => ABBREV[p])];
+  const categories: Record<string, any[][]> = {};
+  for (const cat of catalog.categories || []) {
+    if (!cat.id) continue;
+    const rows = (cat.items || [])
+      .filter((item: any) => item.id)
+      .map((item: any) => [item.id, item.layerRole ?? null, ...PROP_KEYS.map((p) => item.properties?.[p] ?? null)]);
+    if (rows.length) categories[cat.id] = rows;
+  }
+  return { fieldOrder, categories };
+}
+
+function childInfoToString(info: Record<string, any>): string {
+  return Object.entries(info)
+    .filter(([, v]) => v != null && v !== '' && (!Array.isArray(v) || v.length > 0))
+    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+    .join('. ') + '.';
+}
+
+function extractJsonPlan(text: string): AiOutfitPlan | null {
+  let clean = text.trim();
+  const fence = clean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (fence) clean = fence[1].trim();
+  try {
+    const data = JSON.parse(clean);
+    if (data && Array.isArray(data.activities)) return data as AiOutfitPlan;
+  } catch {
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        const data = JSON.parse(match[0]);
+        if (data && Array.isArray(data.activities)) return data as AiOutfitPlan;
+      } catch {}
+    }
+  }
+  return null;
+}
+
+async function callPollinationsAI(
+  promptText: string,
+  onStatusUpdate?: (msg: string) => void,
+): Promise<AiOutfitPlan | null> {
+  const MAX_ATTEMPTS = 3;
+  const TIMEOUT_MS = 50000;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    if (attempt > 1) {
+      onStatusUpdate?.(`Retrying… (attempt ${attempt} of ${MAX_ATTEMPTS})`);
+      await new Promise((r) => setTimeout(r, 5000));
+    } else {
+      setTimeout(() => onStatusUpdate?.('Engine is processing…'), 12000);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      const res = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: promptText }],
+          model: 'openai-fast',
+          jsonMode: true,
+          max_tokens: 8000,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const text = await res.text();
+        const plan = extractJsonPlan(text);
+        if (plan) return plan;
+      }
+    } catch {
+      clearTimeout(timeoutId);
+    }
+  }
+  return null;
+}
+
 export const STANDARD_WEATHER_UNITS: ActivityWeatherUnits = {
   time: 'iso8601',
   temperature_2m: '°C',
@@ -386,7 +507,7 @@ export async function getClothingSuggestion(params: {
   ageLabel?: string;
   forceRefresh?: boolean;
   onStatusUpdate?: (message: string) => void;
-}): Promise<{ plan: AiOutfitPlan; isCached: boolean; timestamp: number; cacheKey: string }> {
+}): Promise<{ plan: AiOutfitPlan; isCached: boolean; timestamp: number; cacheKey: string; engineFailed?: boolean }> {
   const { child, activities, weatherData, dateStr, ageLabel, forceRefresh, onStatusUpdate } = params;
   const fallbackDateStr = formatLocalDate();
   const firstHourlyDate = weatherData?.hourly?.[0]?.time ? weatherData.hourly[0].time.slice(0, 10) : undefined;
@@ -453,68 +574,15 @@ export async function getClothingSuggestion(params: {
 
   let generatedPlan: AiOutfitPlan | null = null;
 
-  // 3. Request suggestion via backend API /api/suggestion (which executes agent.py)
-  // Retries on network error to survive Render cold starts (~50s) and processing time.
+  // 3. Call Pollinations AI directly from the device (uses device IP — no server rate limiting)
   {
-    const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-    const MAX_RETRIES = 5;
-    const RETRY_DELAY_MS = 15000;
+    const prompt = OUTFIT_PROMPT_TEMPLATE
+      .replace('{{CHILD_INFO}}', childInfoToString(child_info))
+      .replace('{{ACTIVITIES_TO_CONSIDER}}', JSON.stringify(formattedActivities, null, 2))
+      .replace('{{WEATHER_JSON}}', JSON.stringify(compactWeatherForPrompt(weather_by_activity)))
+      .replace('{{WARDROBE}}', JSON.stringify(compactCatalogForPrompt(wardrobe_list)));
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      let progressTimer: ReturnType<typeof setTimeout> | undefined;
-      let slowTimer: ReturnType<typeof setTimeout> | undefined;
-
-      try {
-        if (attempt === 1) {
-          progressTimer = setTimeout(
-            () => onStatusUpdate?.('Server is warming up, please wait…'),
-            15000
-          );
-          slowTimer = setTimeout(
-            () => onStatusUpdate?.('Engine is processing — this can take a minute or two…'),
-            60000
-          );
-        } else {
-          onStatusUpdate?.(`Retrying… (attempt ${attempt} of ${MAX_RETRIES})`);
-          progressTimer = setTimeout(
-            () => onStatusUpdate?.('Engine is still processing, please wait…'),
-            30000
-          );
-        }
-
-        const res = await fetch(`${apiBase}/api/suggestion`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        clearTimeout(progressTimer);
-        clearTimeout(slowTimer);
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.plan && Array.isArray(data.plan.activities)) {
-            generatedPlan = data.plan;
-          }
-          break;
-        } else if (res.status >= 500 && attempt < MAX_RETRIES) {
-          // Server cold-starting — wait and retry
-          onStatusUpdate?.('Server is starting up — waiting before next attempt…');
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-        } else {
-          break; // 4xx or last attempt
-        }
-      } catch (err) {
-        clearTimeout(progressTimer);
-        clearTimeout(slowTimer);
-        if (attempt < MAX_RETRIES) {
-          onStatusUpdate?.(`Connection issue — retrying in a moment…`);
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-        } else {
-          console.warn('Backend /api/suggestion failed after retries:', err);
-        }
-      }
-    }
+    generatedPlan = await callPollinationsAI(prompt, onStatusUpdate);
   }
 
   // 4. Engine failed after all retries — signal failure without overwriting the existing cache
