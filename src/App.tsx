@@ -435,6 +435,10 @@ export default function App() {
   };
 
   const handleSelectDay = (day: 'today' | 'tomorrow') => {
+    if (day === 'tomorrow') {
+      setAiPlan(null);
+      setAiError(null);
+    }
     setSelectedDay(day);
   };
 
@@ -577,10 +581,12 @@ export default function App() {
     ]
   );
 
-  // Automatically fetch / retrieve cached suggestion when activities, profile, or wardrobe change
+  // Automatically fetch / retrieve cached suggestion when activities, profile, or wardrobe change.
+  // Tomorrow is on-demand only — the user must tap Re-query explicitly.
   useEffect(() => {
+    if (selectedDay === 'tomorrow') return;
     loadAiSuggestion(false);
-  }, [loadAiSuggestion]);
+  }, [loadAiSuggestion, selectedDay]);
 
   const handleToggleUnit = () => {
     setTemperatureUnit((prev) => (prev === 'C' ? 'F' : 'C'));

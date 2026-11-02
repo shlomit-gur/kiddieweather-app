@@ -95,20 +95,26 @@ async function callPollinationsAI(
   onStatusUpdate?: (msg: string) => void,
 ): Promise<AiOutfitPlan | null> {
   const MAX_ATTEMPTS = 3;
-  const TIMEOUT_MS = 50000;
+  const TIMEOUT_MS = 90000;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     if (attempt > 1) {
       onStatusUpdate?.(`Retrying… (attempt ${attempt} of ${MAX_ATTEMPTS})`);
       await new Promise((r) => setTimeout(r, 5000));
     } else {
-      setTimeout(() => onStatusUpdate?.('Engine is processing…'), 12000);
+      const progressTimer = setTimeout(() => onStatusUpdate?.('Engine is processing…'), 12000);
+      // Store ref so it can be cleared on fast success (minor cleanup)
+      void progressTimer;
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timeoutId = setTimeout(() => {
+      console.warn(`[AI] attempt ${attempt}: timeout after ${TIMEOUT_MS}ms — aborting`);
+      controller.abort();
+    }, TIMEOUT_MS);
 
     try {
+      console.log(`[AI] attempt ${attempt}/${MAX_ATTEMPTS}: sending request (prompt=${promptText.length} chars)`);
       const res = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,21 +122,31 @@ async function callPollinationsAI(
           messages: [{ role: 'user', content: promptText }],
           model: 'openai-fast',
           jsonMode: true,
-          max_tokens: 8000,
+          max_tokens: 4096,
         }),
         signal: controller.signal,
       });
-      clearTimeout(timeoutId);
+      console.log(`[AI] attempt ${attempt}: status=${res.status}`);
 
       if (res.ok) {
         const text = await res.text();
+        clearTimeout(timeoutId);
+        console.log(`[AI] attempt ${attempt}: body.length=${text.length}, head=${text.slice(0, 120)}`);
         const plan = extractJsonPlan(text);
+        console.log(`[AI] attempt ${attempt}: parse=${plan ? 'OK' : 'FAILED'}`);
         if (plan) return plan;
+      } else {
+        clearTimeout(timeoutId);
+        const errBody = await res.text().catch(() => '');
+        console.warn(`[AI] attempt ${attempt}: HTTP ${res.status} — ${errBody.slice(0, 150)}`);
       }
-    } catch {
+    } catch (err: unknown) {
       clearTimeout(timeoutId);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[AI] attempt ${attempt}: error — ${msg}`);
     }
   }
+  console.warn('[AI] all attempts exhausted — returning null');
   return null;
 }
 
@@ -575,14 +591,17 @@ export async function getClothingSuggestion(params: {
   let generatedPlan: AiOutfitPlan | null = null;
 
   // 3. Call Pollinations AI directly from the device (uses device IP — no server rate limiting)
-  {
+  try {
     const prompt = OUTFIT_PROMPT_TEMPLATE
       .replace('{{CHILD_INFO}}', childInfoToString(child_info))
       .replace('{{ACTIVITIES_TO_CONSIDER}}', JSON.stringify(formattedActivities, null, 2))
       .replace('{{WEATHER_JSON}}', JSON.stringify(compactWeatherForPrompt(weather_by_activity)))
       .replace('{{WARDROBE}}', JSON.stringify(compactCatalogForPrompt(wardrobe_list)));
 
+    console.log('[AI] prompt built, length=', prompt.length);
     generatedPlan = await callPollinationsAI(prompt, onStatusUpdate);
+  } catch (err: unknown) {
+    console.error('[AI] unexpected error in suggestion block:', err instanceof Error ? err.message : String(err));
   }
 
   // 4. Engine failed after all retries — signal failure without overwriting the existing cache
