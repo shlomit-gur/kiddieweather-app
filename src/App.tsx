@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Header } from './components/Header';
 import { WeatherSummaryCard } from './components/WeatherSummaryCard';
 import { OutfitVisualizer } from './components/OutfitVisualizer';
@@ -506,9 +506,13 @@ export default function App() {
     activeDailyForecast,
   ]);
 
+  const aiRequestIdRef = useRef(0);
+
   const loadAiSuggestion = React.useCallback(
     (force = false) => {
       if (!weatherData) return;
+
+      const requestId = ++aiRequestIdRef.current;
 
       const defaultScheduleWithLoc = {
         ...DEFAULT_NO_ACTIVITY_SCHEDULE,
@@ -529,9 +533,12 @@ export default function App() {
         dateStr: targetDateStr,
         ageLabel: ageCalculation.formattedAge,
         forceRefresh: force,
-        onStatusUpdate: (msg) => setAiStatusMessage(msg),
+        onStatusUpdate: (msg) => {
+          if (aiRequestIdRef.current === requestId) setAiStatusMessage(msg);
+        },
       })
         .then((res) => {
+          if (aiRequestIdRef.current !== requestId) return;
           if (res.engineFailed) {
             setAiError('Couldn\'t reach the suggestion engine. Try again in a couple of minutes.');
           } else {
@@ -544,6 +551,7 @@ export default function App() {
           setAiStatusMessage('');
         })
         .catch((err) => {
+          if (aiRequestIdRef.current !== requestId) return;
           console.error('Failed to get AI clothing suggestion:', err);
           setAiError('Something went wrong. Try again in a couple of minutes.');
           setIsAiLoading(false);
