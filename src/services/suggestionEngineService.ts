@@ -471,14 +471,14 @@ export async function getClothingSuggestion(params: {
             15000
           );
           slowTimer = setTimeout(
-            () => onStatusUpdate?.('Almost there — finalizing your outfit plan…'),
-            45000
+            () => onStatusUpdate?.('Engine is processing — this can take a minute or two…'),
+            60000
           );
         } else {
-          onStatusUpdate?.(`Server starting up — retrying… (${attempt} of ${MAX_RETRIES})`);
+          onStatusUpdate?.(`Retrying… (attempt ${attempt} of ${MAX_RETRIES})`);
           progressTimer = setTimeout(
-            () => onStatusUpdate?.('Waiting for server response…'),
-            20000
+            () => onStatusUpdate?.('Engine is still processing, please wait…'),
+            30000
           );
         }
 

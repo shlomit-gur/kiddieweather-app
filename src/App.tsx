@@ -507,10 +507,13 @@ export default function App() {
   ]);
 
   const aiRequestIdRef = useRef(0);
+  const aiLoadingRef = useRef(false);
 
   const loadAiSuggestion = React.useCallback(
     (force = false) => {
       if (!weatherData) return;
+      // Skip auto-reloads while a request is already in flight (avoids race with Re-query)
+      if (aiLoadingRef.current && !force) return;
 
       const requestId = ++aiRequestIdRef.current;
 
@@ -523,6 +526,7 @@ export default function App() {
           ? activeSchedulesForDay
           : [defaultScheduleWithLoc];
 
+      aiLoadingRef.current = true;
       setIsAiLoading(true);
       setAiStatusMessage('Querying suggestion engine…');
       setAiError(null);
@@ -539,6 +543,7 @@ export default function App() {
       })
         .then((res) => {
           if (aiRequestIdRef.current !== requestId) return;
+          aiLoadingRef.current = false;
           if (res.engineFailed) {
             setAiError('Couldn\'t reach the suggestion engine. Try again in a couple of minutes.');
             setIsAiCached(true);
@@ -553,6 +558,7 @@ export default function App() {
         })
         .catch((err) => {
           if (aiRequestIdRef.current !== requestId) return;
+          aiLoadingRef.current = false;
           console.error('Failed to get AI clothing suggestion:', err);
           setAiError('Something went wrong. Try again in a couple of minutes.');
           setIsAiLoading(false);
