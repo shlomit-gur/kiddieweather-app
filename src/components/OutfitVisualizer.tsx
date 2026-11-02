@@ -147,17 +147,19 @@ export const OutfitVisualizer: React.FC<OutfitVisualizerProps> = ({
               <span className="font-bold text-xs sm:text-sm text-slate-900">
                 Suggestion Engine Plan
               </span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                  isAiCached
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                }`}
-              >
-                {isAiCached ? '⚡ Cached Plan' : '✨ Fresh Plan'}
-              </span>
               {aiTimestamp && (
-                <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                    isAiCached
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                  }`}
+                >
+                  {isAiCached ? '⚡ Cached Plan' : '✨ Fresh Plan'}
+                </span>
+              )}
+              {aiTimestamp && (
+                <span className="text-[10px] text-slate-500 font-mono">
                   {new Date(aiTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}

@@ -560,7 +560,9 @@ export default function App() {
           if (aiRequestIdRef.current !== requestId) return;
           aiLoadingRef.current = false;
           console.error('Failed to get AI clothing suggestion:', err);
-          setAiError('Something went wrong. Try again in a couple of minutes.');
+          const errMsg = err?.message || String(err) || 'Unknown error';
+          setAiError(`Error: ${errMsg}`);
+          setIsAiCached(true);
           setIsAiLoading(false);
           setAiStatusMessage('');
         });
