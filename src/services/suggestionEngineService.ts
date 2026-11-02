@@ -1,6 +1,7 @@
 import { ChildProfile, ChildScheduleItem } from '../types/child';
 import { WeatherData } from '../types/weather';
 import { formatLocalDate } from '../utils/scheduleUtils';
+import { CLOTHING_CATALOG } from '../utils/clothingCatalog';
 import {
   AiOutfitPlan,
   WeatherByActivity,
@@ -419,11 +420,35 @@ export async function getClothingSuggestion(params: {
     end_time: `${todayDate}T${act.endTime}:00`,
   }));
 
+  // Build filtered catalog dict from owned IDs so agent.py never needs to read a file
+  const ownedIds = new Set(child.availableClothingIds || []);
+  const hasWater = formattedActivities.some((a) => {
+    const text = (a.activity_name + ' ' + a.location).toLowerCase();
+    return ['beach','water','swim','pool','sea','lake','splash'].some((t) => text.includes(t));
+  });
+  const filteredCategories = CLOTHING_CATALOG.categories
+    .filter((cat: any) => hasWater || cat.id !== 'water_activities')
+    .map((cat: any) => ({
+      ...cat,
+      items: cat.items.filter((item: any) => ownedIds.size === 0 || ownedIds.has(item.id)),
+    }))
+    .filter((cat: any) => cat.items.length > 0);
+  const filteredProducts = (CLOTHING_CATALOG.nonClothingProducts || []).filter(
+    (p: any) => ownedIds.size === 0 || ownedIds.has(p.id)
+  );
+  const wardrobe_list = {
+    catalogVersion: (CLOTHING_CATALOG as any).catalogVersion ?? 1,
+    propertyScales: (CLOTHING_CATALOG as any).propertyScales ?? {},
+    categories: filteredCategories,
+    nonClothingProducts: filteredProducts,
+  };
+
   const payload: SuggestionEngineRequestPayload = {
     weather_by_activity,
     child_info,
     activities: formattedActivities,
     owned_item_ids: child.availableClothingIds || [],
+    wardrobe_list,
   };
 
   let generatedPlan: AiOutfitPlan | null = null;
@@ -432,25 +457,29 @@ export async function getClothingSuggestion(params: {
   // Retries on network error to survive Render cold starts (~50s) and processing time.
   {
     const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY_MS = 10000;
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY_MS = 15000;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      let progressTimer: ReturnType<typeof setTimeout> | undefined;
       let slowTimer: ReturnType<typeof setTimeout> | undefined;
-      let verySlowTimer: ReturnType<typeof setTimeout> | undefined;
 
       try {
         if (attempt === 1) {
-          slowTimer = setTimeout(
+          progressTimer = setTimeout(
             () => onStatusUpdate?.('Server is warming up, please wait…'),
             15000
           );
-          verySlowTimer = setTimeout(
+          slowTimer = setTimeout(
             () => onStatusUpdate?.('Almost there — finalizing your outfit plan…'),
             45000
           );
         } else {
-          onStatusUpdate?.(`Retrying… (attempt ${attempt} of ${MAX_RETRIES})`);
+          onStatusUpdate?.(`Server starting up — retrying… (${attempt} of ${MAX_RETRIES})`);
+          progressTimer = setTimeout(
+            () => onStatusUpdate?.('Waiting for server response…'),
+            20000
+          );
         }
 
         const res = await fetch(`${apiBase}/api/suggestion`, {
@@ -459,24 +488,30 @@ export async function getClothingSuggestion(params: {
           body: JSON.stringify(payload),
         });
 
+        clearTimeout(progressTimer);
         clearTimeout(slowTimer);
-        clearTimeout(verySlowTimer);
 
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.plan && Array.isArray(data.plan.activities)) {
             generatedPlan = data.plan;
           }
+          break;
+        } else if (res.status >= 500 && attempt < MAX_RETRIES) {
+          // Server cold-starting — wait and retry
+          onStatusUpdate?.('Server is starting up — waiting before next attempt…');
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        } else {
+          break; // 4xx or last attempt
         }
-        break; // success or non-network error — stop retrying
       } catch (err) {
+        clearTimeout(progressTimer);
         clearTimeout(slowTimer);
-        clearTimeout(verySlowTimer);
         if (attempt < MAX_RETRIES) {
           onStatusUpdate?.(`Connection issue — retrying in a moment…`);
           await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
         } else {
-          console.warn('Backend /api/suggestion failed after retries, falling back:', err);
+          console.warn('Backend /api/suggestion failed after retries:', err);
         }
       }
     }
