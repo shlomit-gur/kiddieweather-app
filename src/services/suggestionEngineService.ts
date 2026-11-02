@@ -384,8 +384,9 @@ export async function getClothingSuggestion(params: {
   dateStr?: string;
   ageLabel?: string;
   forceRefresh?: boolean;
+  onStatusUpdate?: (message: string) => void;
 }): Promise<{ plan: AiOutfitPlan; isCached: boolean; timestamp: number; cacheKey: string }> {
-  const { child, activities, weatherData, dateStr, ageLabel, forceRefresh } = params;
+  const { child, activities, weatherData, dateStr, ageLabel, forceRefresh, onStatusUpdate } = params;
   const fallbackDateStr = formatLocalDate();
   const firstHourlyDate = weatherData?.hourly?.[0]?.time ? weatherData.hourly[0].time.slice(0, 10) : undefined;
   const todayDate = dateStr || firstHourlyDate || fallbackDateStr;
@@ -401,6 +402,7 @@ export async function getClothingSuggestion(params: {
         isCached: true,
         timestamp: cached.timestamp,
         cacheKey,
+        engineFailed: false,
       };
     }
   }
@@ -427,34 +429,71 @@ export async function getClothingSuggestion(params: {
   let generatedPlan: AiOutfitPlan | null = null;
 
   // 3. Request suggestion via backend API /api/suggestion (which executes agent.py)
-  try {
+  // Retries on network error to survive Render cold starts (~50s) and processing time.
+  {
     const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(`${apiBase}/api/suggestion`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 10000;
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.plan && Array.isArray(data.plan.activities)) {
-        generatedPlan = data.plan;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      let slowTimer: ReturnType<typeof setTimeout> | undefined;
+      let verySlowTimer: ReturnType<typeof setTimeout> | undefined;
+
+      try {
+        if (attempt === 1) {
+          slowTimer = setTimeout(
+            () => onStatusUpdate?.('Server is warming up, please wait…'),
+            15000
+          );
+          verySlowTimer = setTimeout(
+            () => onStatusUpdate?.('Almost there — finalizing your outfit plan…'),
+            45000
+          );
+        } else {
+          onStatusUpdate?.(`Retrying… (attempt ${attempt} of ${MAX_RETRIES})`);
+        }
+
+        const res = await fetch(`${apiBase}/api/suggestion`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        clearTimeout(slowTimer);
+        clearTimeout(verySlowTimer);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.plan && Array.isArray(data.plan.activities)) {
+            generatedPlan = data.plan;
+          }
+        }
+        break; // success or non-network error — stop retrying
+      } catch (err) {
+        clearTimeout(slowTimer);
+        clearTimeout(verySlowTimer);
+        if (attempt < MAX_RETRIES) {
+          onStatusUpdate?.(`Connection issue — retrying in a moment…`);
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        } else {
+          console.warn('Backend /api/suggestion failed after retries, falling back:', err);
+        }
       }
     }
-  } catch (err) {
-    console.warn('Backend /api/suggestion call failed, attempting client-side fallback:', err);
   }
 
-  // 4. Client-side fallback if backend API is not available
+  // 4. Engine failed after all retries — signal failure without overwriting the existing cache
   if (!generatedPlan) {
-    generatedPlan = await generateClientFallbackPlan(payload, todayDate);
+    return {
+      plan: null as unknown as AiOutfitPlan,
+      isCached: false,
+      timestamp: Date.now(),
+      cacheKey,
+      engineFailed: true,
+    };
   }
 
-  // 5. Save to cache
+  // 5. Save fresh plan to cache
   const record: CachedSuggestionRecord = {
     cacheKey,
     childId: child.id,
@@ -470,6 +509,7 @@ export async function getClothingSuggestion(params: {
     isCached: false,
     timestamp: record.timestamp,
     cacheKey,
+    engineFailed: false,
   };
 }
 
