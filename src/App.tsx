@@ -524,7 +524,7 @@ export default function App() {
           : [defaultScheduleWithLoc];
 
       setIsAiLoading(true);
-      setAiStatusMessage('');
+      setAiStatusMessage('Querying suggestion engine…');
       setAiError(null);
       getClothingSuggestion({
         child: activeChild,
@@ -541,6 +541,7 @@ export default function App() {
           if (aiRequestIdRef.current !== requestId) return;
           if (res.engineFailed) {
             setAiError('Couldn\'t reach the suggestion engine. Try again in a couple of minutes.');
+            setIsAiCached(true);
           } else {
             setAiError(null);
             setAiPlan(res.plan);
@@ -924,10 +925,10 @@ export default function App() {
                 </div>
               ) : recommendation ? (
                 <>
-                  {isAiLoading && aiStatusMessage && aiPlan && (
+                  {isAiLoading && aiPlan && (
                     <div className="px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center gap-2">
                       <RefreshCw className="w-3.5 h-3.5 text-indigo-600 animate-spin shrink-0" />
-                      <span className="text-xs text-indigo-800 font-medium">{aiStatusMessage}</span>
+                      <span className="text-xs text-indigo-800 font-medium">{aiStatusMessage || 'Querying suggestion engine…'}</span>
                     </div>
                   )}
                   {!isAiLoading && aiError && aiPlan && (
