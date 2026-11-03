@@ -38,7 +38,7 @@ export function clearAiDebugLog(): void {
 // Client-side AI engine (Pollinations AI — no API key, uses device IP)
 // ---------------------------------------------------------------------------
 
-const OUTFIT_PROMPT_TEMPLATE = `You are a parenting assistant. Generate a weather-appropriate clothing plan for the child's activities.
+const OUTFIT_PROMPT_TEMPLATE = `You are a parenting assistant. Generate a weather-appropriate clothing plan for the child's activities on {{PLAN_DATE}}.
 
 ### RULES:
 1. \`wear_on_start\` MUST include ALL THREE: (a) a top/upper garment, (b) bottoms (trousers/shorts/leggings), (c) footwear. Never omit any group.
@@ -519,9 +519,12 @@ function removeStorageItem(key: string): void {
 /**
  * Retrieves cached suggestion from localStorage (or memory) if valid for current key
  */
-export function getCachedSuggestion(childId: string, expectedCacheKey: string): CachedSuggestionRecord | null {
+export function getCachedSuggestion(childId: string, expectedCacheKey: string, dateStr?: string): CachedSuggestionRecord | null {
   try {
-    const raw = getStorageItem(`${CACHE_PREFIX}${childId}`);
+    const storageKey = dateStr
+      ? `${CACHE_PREFIX}${childId}_${dateStr.slice(0, 10)}`
+      : `${CACHE_PREFIX}${childId}`;
+    const raw = getStorageItem(storageKey);
     if (!raw) return null;
     const parsed: CachedSuggestionRecord = JSON.parse(raw);
     if (parsed && parsed.cacheKey === expectedCacheKey && parsed.plan) {
@@ -538,7 +541,10 @@ export function getCachedSuggestion(childId: string, expectedCacheKey: string): 
  */
 export function saveSuggestionToCache(record: CachedSuggestionRecord): void {
   try {
-    setStorageItem(`${CACHE_PREFIX}${record.childId}`, JSON.stringify(record));
+    const storageKey = record.dateStr
+      ? `${CACHE_PREFIX}${record.childId}_${record.dateStr.slice(0, 10)}`
+      : `${CACHE_PREFIX}${record.childId}`;
+    setStorageItem(storageKey, JSON.stringify(record));
   } catch (err) {
     console.warn('Error writing suggestion cache:', err);
   }
@@ -592,7 +598,7 @@ export async function getClothingSuggestion(params: {
 
   // 1. Check cache first unless forceRefresh is set
   if (!forceRefresh) {
-    const cached = getCachedSuggestion(child.id, cacheKey);
+    const cached = getCachedSuggestion(child.id, cacheKey, todayDate);
     if (cached) {
       return {
         plan: cached.plan,
@@ -652,6 +658,7 @@ export async function getClothingSuggestion(params: {
   // 3. Call Pollinations AI directly from the device (uses device IP — no server rate limiting)
   try {
     const prompt = OUTFIT_PROMPT_TEMPLATE
+      .replace('{{PLAN_DATE}}', todayDate)
       .replace('{{CHILD_INFO}}', childInfoToString(child_info))
       .replace('{{ACTIVITIES_TO_CONSIDER}}', JSON.stringify(formattedActivities, null, 2))
       .replace('{{WEATHER_JSON}}', JSON.stringify(compactWeatherForPrompt(weather_by_activity)))
