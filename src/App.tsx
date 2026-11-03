@@ -380,24 +380,18 @@ export default function App() {
     return (activeChild.schedules || []).filter((s) => isScheduleActiveOnDate(s, targetDateObj));
   }, [activeChild.schedules, targetDateObj]);
 
-  // Multi-schedule selection: support checking one or more active schedules for the day
-  const [selectedScheduleIds, setSelectedScheduleIds] = useState<string[]>([]);
+  // Per-day schedule selection: each day remembers its own checked set independently.
+  // An absent or empty entry means "default = all checked".
+  const [selectedIdsByDay, setSelectedIdsByDay] = useState<Record<string, string[]>>({});
 
-  // Keep selected schedules in sync with active schedules for the active day
-  useEffect(() => {
-    if (activeSchedulesForDay.length === 0) {
-      setSelectedScheduleIds([]);
-    } else {
-      setSelectedScheduleIds((prev) => {
-        const stillValid = prev.filter((id) => activeSchedulesForDay.some((s) => s.id === id));
-        // Default to checking all active routines if none currently selected
-        if (stillValid.length === 0) {
-          return activeSchedulesForDay.map((s) => s.id);
-        }
-        return stillValid;
-      });
-    }
-  }, [activeSchedulesForDay]);
+  // Derive the effective selection for the active day
+  const selectedScheduleIds = useMemo(() => {
+    const stored = selectedIdsByDay[targetDateStr] || [];
+    const stillValid = stored.filter((id) => activeSchedulesForDay.some((s) => s.id === id));
+    // No prior selection for this date → default to all
+    if (stillValid.length === 0) return activeSchedulesForDay.map((s) => s.id);
+    return stillValid;
+  }, [selectedIdsByDay, targetDateStr, activeSchedulesForDay]);
 
   const selectedSchedules = useMemo(() => {
     if (activeSchedulesForDay.length === 0) {
@@ -423,14 +417,17 @@ export default function App() {
   }, [selectedSchedules, activeSchedulesForDay]);
 
   const handleToggleSchedule = (scheduleId: string) => {
-    setSelectedScheduleIds((prev) => {
-      if (prev.includes(scheduleId)) {
-        // Prevent unchecking the only checked schedule so an active routine is always covered
-        if (prev.length <= 1) return prev;
-        return prev.filter((id) => id !== scheduleId);
-      } else {
-        return [...prev, scheduleId];
-      }
+    setSelectedIdsByDay((prev) => {
+      const current = (prev[targetDateStr] || []).filter((id) =>
+        activeSchedulesForDay.some((s) => s.id === id)
+      );
+      const effective = current.length > 0 ? current : activeSchedulesForDay.map((s) => s.id);
+      const isChecked = effective.includes(scheduleId);
+      if (isChecked && effective.length <= 1) return prev; // keep at least one checked
+      const updated = isChecked
+        ? effective.filter((id) => id !== scheduleId)
+        : [...effective, scheduleId];
+      return { ...prev, [targetDateStr]: updated };
     });
   };
 
