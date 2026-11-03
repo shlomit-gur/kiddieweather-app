@@ -237,6 +237,7 @@ export function populateRecommendationFromAiPlan(params: PopulateSuggestionParam
   ) => {
     const normId = normalizeItemId(rawItemId);
     if (!normId) return;
+    if (seenWearIds.has(normId)) return; // already in the "on" (wear) list — don't duplicate in "with"
 
     const catalogItem = getCatalogItemById(normId);
     const name = formatItemName(normId, catalogItem);
@@ -253,7 +254,9 @@ export function populateRecommendationFromAiPlan(params: PopulateSuggestionParam
       else if (activityName) timing = `For ${activityName}`;
     }
 
-    const reason = rawAppropriateWhen || `Recommended to carry for ${activityName}`;
+    // Only use rawAppropriateWhen as a reason if it's a meaningful phrase (≥15 chars or contains a space)
+    const isMeaningfulReason = rawAppropriateWhen && (rawAppropriateWhen.length >= 15 || rawAppropriateWhen.includes(' '));
+    const reason = isMeaningfulReason ? rawAppropriateWhen! : (activityName ? `Recommended for ${activityName}` : timing);
 
     const existing = packItemsMap.get(normId);
     if (!existing) {
@@ -373,9 +376,40 @@ export function populateRecommendationFromAiPlan(params: PopulateSuggestionParam
     safeProducts: [],
   };
 
+  const formatMosquitoHours = (raw: string | undefined): string => {
+    if (!raw) return 'During outdoor activity';
+    const trimmed = raw.trim();
+    const bareHour = trimmed.match(/^(\d{1,2})$/);
+    if (bareHour) {
+      const h = parseInt(bareHour[1], 10);
+      if (h >= 0 && h <= 23) {
+        // Cross-reference with activity windows to resolve 12h ambiguity (e.g. "2" → 14 if activity is at 14:00)
+        const actSpans = matchedPlanActivities.map((act) => {
+          const times = act.time_window.match(/(\d{1,2}):(\d{2})/g);
+          if (times && times.length >= 2) {
+            const [sh] = times[0].split(':').map(Number);
+            const [eh] = times[1].split(':').map(Number);
+            return { startH: sh, endH: eh };
+          }
+          return { startH: 8, endH: 17 };
+        });
+        const inAnyActivity = (hour: number) =>
+          actSpans.some((s) => hour >= s.startH && hour <= s.endH);
+        let resolvedH = h;
+        if (h < 12 && !inAnyActivity(h) && inAnyActivity(h + 12)) {
+          resolvedH = h + 12;
+        }
+        const period = resolvedH < 12 ? 'AM' : 'PM';
+        const display = resolvedH === 0 ? 12 : resolvedH > 12 ? resolvedH - 12 : resolvedH;
+        return `${display}:00 ${period}`;
+      }
+    }
+    return trimmed;
+  };
+
   for (const act of matchedPlanActivities) {
     if (act.mosquito_repellent?.needed) {
-      const hours = act.mosquito_repellent.hours || 'During outdoor activity';
+      const hours = formatMosquitoHours(act.mosquito_repellent.hours);
       const reason = act.mosquito_repellent.reason || `Recommended for ${act.activity_name}`;
       mosquitoAdvice = {
         needed: true,
@@ -561,7 +595,10 @@ export function populateRecommendationFromAiPlan(params: PopulateSuggestionParam
   });
 
   // 5. Build Day Transitions & Outfit Changes if multiple activities
+  // Only emit a transition for an item if the child isn't already wearing it and
+  // hasn't already been told to put it on for an earlier transition.
   const changes: OutfitChange[] = [];
+  const seenChangeIds = new Set<string>(seenWearIds); // pre-seed with what's already worn
   if (matchedPlanActivities.length > 1) {
     for (let i = 1; i < matchedPlanActivities.length; i++) {
       const act = matchedPlanActivities[i];
@@ -569,13 +606,15 @@ export function populateRecommendationFromAiPlan(params: PopulateSuggestionParam
       const timeStr = timeMatch ? timeMatch[1] : '16:00';
       const todayDate = plan.plan_date || new Date().toISOString().slice(0, 10);
 
-      // Check if this activity has specific pack_and_carry items to put on
       (act.pack_and_carry || []).forEach((p, idx) => {
+        const normId = normalizeItemId(p.item);
+        if (!normId || seenChangeIds.has(normId)) return;
+        seenChangeIds.add(normId);
         changes.push({
           id: `change-${act.activity_name}-${idx}`,
           time: `${todayDate}T${timeStr}:00`,
           action: 'put_on',
-          clothingItemId: normalizeItemId(p.item),
+          clothingItemId: normId,
           reason: `Transition to ${act.activity_name}: ${p.appropriate_when}`,
           activityWindowId: act.activity_name,
         });

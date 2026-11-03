@@ -165,7 +165,7 @@ export const OutfitVisualizer: React.FC<OutfitVisualizerProps> = ({
               )}
             </div>
             <p className="text-[11px] text-slate-600 whitespace-normal mt-0.5">
-              Re-queried only if activities for the day, kid profile, or wardrobe change
+              Automativally re-queried only if activities for the day, kid profile, or wardrobe change
             </p>
           </div>
         </div>
