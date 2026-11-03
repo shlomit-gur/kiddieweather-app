@@ -94,19 +94,40 @@ function childInfoToString(info: Record<string, any>): string {
 
 function extractJsonPlan(text: string): AiOutfitPlan | null {
   let clean = text.trim();
+
+  // Strip markdown fence
   const fence = clean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (fence) clean = fence[1].trim();
+
+  // Fast path: whole text is the JSON
   try {
     const data = JSON.parse(clean);
     if (data && Array.isArray(data.activities)) return data as AiOutfitPlan;
-  } catch {
-    const match = clean.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        const data = JSON.parse(match[0]);
-        if (data && Array.isArray(data.activities)) return data as AiOutfitPlan;
-      } catch {}
+  } catch {}
+
+  // Slow path: scan for balanced top-level { } blocks (handles reasoning traces where
+  // the model thinks out loud before emitting the final JSON answer).
+  // Try candidates in reverse so the LAST object (the final answer) wins.
+  const candidates: string[] = [];
+  let depth = 0;
+  let start = -1;
+  for (let i = 0; i < clean.length; i++) {
+    if (clean[i] === '{') {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (clean[i] === '}') {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        candidates.push(clean.slice(start, i + 1));
+        start = -1;
+      }
     }
+  }
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    try {
+      const data = JSON.parse(candidates[i]);
+      if (data && Array.isArray(data.activities)) return data as AiOutfitPlan;
+    } catch {}
   }
   return null;
 }
@@ -136,14 +157,15 @@ async function callPollinationsAI(
 
     try {
       aiLog(`attempt ${attempt}/${MAX_ATTEMPTS}: sending request (prompt=${promptText.length} chars)`);
-      const res = await fetch('https://text.pollinations.ai/', {
+      const res = await fetch('https://text.pollinations.ai/openai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: promptText }],
           model: 'openai-fast',
-          jsonMode: true,
-          max_tokens: 4096,
+          response_format: { type: 'json_object' },
+          max_tokens: 16000,
+          reasoning_effort: 'low',
         }),
         signal: controller.signal,
       });
@@ -152,9 +174,25 @@ async function callPollinationsAI(
       if (res.ok) {
         const text = await res.text();
         clearTimeout(timeoutId);
-        aiLog(`attempt ${attempt}: body.length=${text.length}, head=${text.slice(0, 120)}`);
-        const plan = extractJsonPlan(text);
-        aiLog(`attempt ${attempt}: parse=${plan ? 'OK' : 'FAILED'}`);
+        aiLog(`attempt ${attempt}: body.length=${text.length}`);
+
+        // OpenAI-format response: extract from content (direct answer) or reasoning (thinking trace)
+        let planSource = text;
+        try {
+          const wrapper = JSON.parse(text);
+          const msg = wrapper?.choices?.[0]?.message;
+          if (msg) {
+            const content = typeof msg.content === 'string' ? msg.content.trim() : '';
+            const reasoning = typeof msg.reasoning === 'string' ? msg.reasoning.trim() : '';
+            aiLog(`attempt ${attempt}: content.len=${content.length}, reasoning.len=${reasoning.length}`);
+            planSource = content || reasoning;
+          }
+        } catch {
+          // raw JSON fallback (native endpoint or unexpected format)
+        }
+
+        const plan = extractJsonPlan(planSource);
+        aiLog(`attempt ${attempt}: parse=${plan ? 'OK' : 'FAILED'}, source.head=${planSource.slice(0, 80)}`);
         if (plan) return plan;
       } else {
         clearTimeout(timeoutId);
