@@ -585,10 +585,17 @@ export default function App() {
     ]
   );
 
-  // Automatically fetch / retrieve cached suggestion when activities, profile, or wardrobe change.
-  // Tomorrow is on-demand only — the user must tap Re-query explicitly.
+  // Track whether selectedDay just changed this render cycle
+  const prevSelectedDayRef = useRef<'today' | 'tomorrow'>(selectedDay);
+
+  // Auto-fetch when activities, profile, wardrobe, or date change.
+  // Exception: skip when the user merely switches TO the tomorrow tab (require explicit Re-query
+  // in that case to avoid burning tokens on a casual tab peek). Activity/profile changes while
+  // already on tomorrow still trigger a re-query.
   useEffect(() => {
-    if (selectedDay === 'tomorrow') return;
+    const dayJustChanged = prevSelectedDayRef.current !== selectedDay;
+    prevSelectedDayRef.current = selectedDay;
+    if (selectedDay === 'tomorrow' && dayJustChanged) return;
     loadAiSuggestion(false);
   }, [loadAiSuggestion, selectedDay]);
 
@@ -767,7 +774,7 @@ export default function App() {
                         </div>
                         {activeSchedulesForDay.length === 1 && (
                           <p className="text-[11px] text-indigo-700 whitespace-normal mt-0.5">
-                            Layers and checklist tailored for this {selectedDay === 'today' ? "today's" : "tomorrow's"} activity
+                            Planning for this activity
                           </p>
                         )}
                       </div>
