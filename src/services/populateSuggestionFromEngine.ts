@@ -598,6 +598,29 @@ export function populateRecommendationFromAiPlan(params: PopulateSuggestionParam
     }
   }
 
+  // Auto-add thin socks when closed shoes are worn but no socks were specified by the engine
+  const hasClosedShoeOnFeet = Array.from(seenWearIds).some(
+    (id) => (id.includes('shoe') || id.includes('sneaker') || id.includes('boot')) && !id.includes('sandal')
+  );
+  const hasSockOnFeet = Array.from(seenWearIds).some((id) => id.includes('sock'));
+  if (hasClosedShoeOnFeet && !hasSockOnFeet) {
+    const sockId = 'thin_everyday_socks';
+    seenWearIds.add(sockId);
+    packItemsMap.delete(sockId); // remove from "with" if it somehow ended up there
+    const catalogItem = getCatalogItemById(sockId);
+    wearNowExtremities.push({
+      id: sockId,
+      name: formatItemName(sockId, catalogItem),
+      category: 'extremities',
+      description: catalogItem?.properties
+        ? `Coverage: ${catalogItem.properties.coverage || 'standard'}, Breathability: ${catalogItem.properties.breathability || 'good'}`
+        : 'Essential clothing recommended by Suggestion Engine',
+      iconName: inferIconName(sockId, 'extremities'),
+      materialHint: getMaterialHint(catalogItem),
+      priority: 'essential',
+    });
+  }
+
   // Convert aggregated pack items map into finalized unique packInBagItems list
   const packInBagItems: PackInBagItem[] = Array.from(packItemsMap.values()).map((item) => {
     let aggregatedTiming = item.timings[0] || 'For schedule transition';

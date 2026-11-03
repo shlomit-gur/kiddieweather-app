@@ -432,15 +432,18 @@ export default function App() {
   };
 
   const handleSelectDay = (day: 'today' | 'tomorrow') => {
-    if (day === 'tomorrow') {
-      setAiPlan(null);
-      setAiError(null);
-    }
+    // Cancel any in-flight request for the previous day so it can't land in the wrong date slot
+    ++aiRequestIdRef.current;
+    aiLoadingRef.current = false;
+    setIsAiLoading(false);
+    setAiError(null);
     setSelectedDay(day);
   };
 
   // Suggestion Engine State (agent.py with prompt_template.md + caching)
-  const [aiPlan, setAiPlan] = useState<AiOutfitPlan | null>(null);
+  // Plans are stored per date so switching days never overwrites the other day's plan.
+  const [aiPlanByDate, setAiPlanByDate] = useState<Record<string, AiOutfitPlan>>({});
+  const aiPlan = aiPlanByDate[targetDateStr] ?? null;
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isAiCached, setIsAiCached] = useState(false);
   const [aiTimestamp, setAiTimestamp] = useState<number | undefined>(undefined);
@@ -529,6 +532,7 @@ export default function App() {
           ? activeSchedulesForDay
           : [defaultScheduleWithLoc];
 
+      const planDate = targetDateStr; // capture at request time — survives day switches
       aiLoadingRef.current = true;
       setIsAiLoading(true);
       setAiStatusMessage('Querying suggestion engine…');
@@ -540,7 +544,7 @@ export default function App() {
         child: activeChild,
         activities: activitiesToPlan,
         weatherData,
-        dateStr: targetDateStr,
+        dateStr: planDate,
         ageLabel: ageCalculation.formattedAge,
         forceRefresh: force,
         onStatusUpdate: (msg) => {
@@ -556,7 +560,7 @@ export default function App() {
             setIsAiCached(true);
           } else {
             setAiError(null);
-            setAiPlan(res.plan);
+            setAiPlanByDate((prev) => ({ ...prev, [planDate]: res.plan }));
             setIsAiCached(res.isCached);
             setAiTimestamp(res.timestamp);
           }
@@ -917,6 +921,25 @@ export default function App() {
                 />
               )}
 
+              {/* Tomorrow with no plan yet: show Re-query prompt instead of the rule-based fallback */}
+              {selectedDay === 'tomorrow' && !aiPlan && !isAiLoading && !aiError && (
+                <div className="p-6 rounded-2xl bg-white border border-indigo-100 shadow-2xs flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <CalendarDays className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900">No plan for tomorrow yet</h3>
+                    <p className="text-xs text-slate-500 mt-1">Tap Re-query to generate a personalised outfit plan for {tomorrowFormattedLabel}.</p>
+                  </div>
+                  <button
+                    onClick={() => loadAiSuggestion(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Re-query
+                  </button>
+                </div>
+              )}
+
               {/* Clothing Suggestion Visualizer populated from Suggestion Engine */}
               {isAiLoading && !aiPlan ? (
                 <div className="p-6 rounded-2xl bg-white border border-indigo-100 shadow-2xs flex flex-col items-center justify-center text-center space-y-3">
@@ -963,7 +986,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              ) : recommendation ? (
+              ) : recommendation && (selectedDay === 'today' || aiPlan) ? (
                 <>
                   {isAiLoading && aiPlan && (
                     <div className="px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center gap-2">
