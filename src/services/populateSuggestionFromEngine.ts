@@ -572,6 +572,32 @@ export function populateRecommendationFromAiPlan(params: PopulateSuggestionParam
     });
   });
 
+  // Sock + shoe coherence: socks always belong in the same section as the footwear.
+  // If any shoe is already being worn ("on"), promote any socks from "with" to "on".
+  const hasShoeOnFeet = Array.from(seenWearIds).some(
+    (id) => id.includes('shoe') || id.includes('sneaker') || id.includes('boot') || id.includes('sandal')
+  );
+  if (hasShoeOnFeet) {
+    for (const [normId] of Array.from(packItemsMap)) {
+      if (normId.includes('sock')) {
+        packItemsMap.delete(normId);
+        seenWearIds.add(normId);
+        const catalogItem = getCatalogItemById(normId);
+        wearNowExtremities.push({
+          id: normId,
+          name: formatItemName(normId, catalogItem),
+          category: 'extremities',
+          description: catalogItem?.properties
+            ? `Coverage: ${catalogItem.properties.coverage || 'standard'}, Breathability: ${catalogItem.properties.breathability || 'good'}`
+            : 'Essential clothing recommended by Suggestion Engine',
+          iconName: inferIconName(normId, 'extremities'),
+          materialHint: getMaterialHint(catalogItem),
+          priority: 'essential',
+        });
+      }
+    }
+  }
+
   // Convert aggregated pack items map into finalized unique packInBagItems list
   const packInBagItems: PackInBagItem[] = Array.from(packItemsMap.values()).map((item) => {
     let aggregatedTiming = item.timings[0] || 'For schedule transition';
