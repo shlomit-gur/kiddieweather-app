@@ -45,7 +45,7 @@ The AI is called only when needed (activity or profile changes), and results are
 ## Prerequisites
 
 - **Node.js** 18 or later
-- **npm** 9 or later (or bun)
+- **npm** 9 or later
 - **Android Studio** (Hedgehog or later) with Android SDK 34+
 - A physical Android device or emulator (API 26 / Android 8.0+)
 

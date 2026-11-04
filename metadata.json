@@ -2,5 +2,5 @@
   "name": "KiddieWeather - Smart Child Dress & Forecast Advisor",
   "description": "Smart daily forecast and pediatric clothing recommendations tailored to your child's age, local weather, and daily activities.",
   "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
