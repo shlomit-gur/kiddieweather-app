@@ -987,7 +987,8 @@ export default function App() {
                   >
                     <RefreshCw className="w-3.5 h-3.5" /> Retry
                   </button>
-                  {aiDiagLog && (
+                  {/* Diagnostic log — hidden in production, re-enable by changing false → aiDiagLog */}
+                  {false && aiDiagLog && (
                     <div className="w-full text-left">
                       <button
                         onClick={() => setShowAiDiag((v) => !v)}
