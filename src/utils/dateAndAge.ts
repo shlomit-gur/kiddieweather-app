@@ -1,4 +1,5 @@
 import { ChildAgeCalculation, AgeCategory } from '../types/child';
+import { NON_BABY_CATALOG_ITEM_IDS } from './clothingCatalog';
 
 export function calculateChildAge(birthDateStr: string, referenceDate: Date = new Date()): ChildAgeCalculation {
   if (!birthDateStr) {
@@ -142,45 +143,26 @@ export function getBirthDateForDaysAgo(days: number): string {
 export function getDefaultChildProfile(): import('../types/child').ChildProfile {
   return {
     id: 'default-child-1',
-    name: 'Adam',
-    birthDate: getBirthDateForMonthsAgo(42), // 3.5-year-old preschooler by default
+    name: 'Johnny Doe',
+    birthDate: '2024-02-22',
     avatarColor: 'sky',
     location: 'London, UK',
-    activityLevel: 'high_energy',
-    temperatureTendency: 'runs_hot',
-    specialTraits: ['sensitive_skin'],
+    activityLevel: 'moderate',
+    temperatureTendency: 'normal',
+    specialTraits: [],
     schedules: [
       {
         id: 'sched-1',
-        title: 'Daycare - Week',
-        startTime: '07:30',
-        endTime: '17:00',
+        title: 'Daycare',
+        startTime: '08:00',
+        endTime: '16:00',
         days: [0, 1, 2, 3, 4], // Sunday - Thursday
         locationType: 'daycare',
         location: 'London, UK',
         enabled: true,
       },
-      {
-        id: 'sched-2',
-        title: 'Daycare - Friday',
-        startTime: '07:30',
-        endTime: '12:45',
-        days: [5], // Friday
-        locationType: 'daycare',
-        location: 'London, UK',
-        enabled: true,
-      },
-      {
-        id: 'sched-3',
-        title: 'Weekend Park Outing',
-        startTime: '10:00',
-        endTime: '13:00',
-        days: [6, 0], // Saturday & Sunday
-        locationType: 'park',
-        location: 'London, UK',
-        enabled: false,
-      },
     ],
-    notes: 'Likes soft organic cotton',
+    availableClothingIds: NON_BABY_CATALOG_ITEM_IDS,
+    notes: '',
   };
 }

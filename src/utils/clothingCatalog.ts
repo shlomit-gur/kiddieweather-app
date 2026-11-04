@@ -12,6 +12,14 @@ export const ALL_CATALOG_ITEMS: CatalogItem[] = [
 // All item IDs
 export const ALL_CATALOG_ITEM_IDS: string[] = ALL_CATALOG_ITEMS.map((item) => item.id);
 
+// All item IDs excluding the baby_clothing category
+export const NON_BABY_CATALOG_ITEM_IDS: string[] = [
+  ...CLOTHING_CATALOG.categories
+    .filter((cat) => cat.id !== 'baby_clothing')
+    .flatMap((cat) => cat.items.map((item) => item.id)),
+  ...CLOTHING_CATALOG.nonClothingProducts.map((item) => item.id),
+];
+
 // Map for quick lookup
 const itemMap = new Map<string, CatalogItem>();
 ALL_CATALOG_ITEMS.forEach((item) => {
