@@ -164,8 +164,8 @@ async function callPollinationsAI(
           messages: [{ role: 'user', content: promptText }],
           model: 'openai-fast',
           response_format: { type: 'json_object' },
-          max_tokens: 16000,
           reasoning_effort: 'medium',
+          max_completion_tokens: 32768,
         }),
         signal: controller.signal,
       });
