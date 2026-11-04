@@ -20,7 +20,7 @@ import { isScheduleActiveOnDate, getScheduleRecurrenceLabel, getCombinedSchedule
 import { BookOpen, AlertCircle, AlertTriangle, RefreshCw, CalendarCheck, Repeat, CheckSquare, Clock, Sparkles, MapPin, CalendarDays } from 'lucide-react';
 import { populateRecommendationFromAiPlan } from './services/populateSuggestionFromEngine';
 import { generateClothingRecommendation } from './services/clothingRecommender';
-import { getClothingSuggestion, getAiDebugLog, clearAiDebugLog } from './services/suggestionEngineService';
+import { getClothingSuggestion, getAiDebugLog, clearAiDebugLog, computeSuggestionCacheKey, getCachedSuggestion } from './services/suggestionEngineService';
 import { AiOutfitPlan } from './types/suggestionEngine';
 
 const STORAGE_PROFILES_KEY = 'kiddie_weather_profiles_v1';
@@ -593,15 +593,32 @@ export default function App() {
   const prevSelectedDayRef = useRef<'today' | 'tomorrow'>(selectedDay);
 
   // Auto-fetch when activities, profile, wardrobe, or date change.
-  // Exception: skip when the user merely switches TO the tomorrow tab (require explicit Re-query
-  // in that case to avoid burning tokens on a casual tab peek). Activity/profile changes while
-  // already on tomorrow still trigger a re-query.
+  // On switching TO tomorrow: restore from cache only (no AI call on tab peek).
+  // Activity/profile changes while already on tomorrow still trigger a full re-query.
   useEffect(() => {
     const dayJustChanged = prevSelectedDayRef.current !== selectedDay;
     prevSelectedDayRef.current = selectedDay;
-    if (selectedDay === 'tomorrow' && dayJustChanged) return;
+
+    if (selectedDay === 'tomorrow' && dayJustChanged) {
+      // Cache-only restore: show the plan if it was previously queried, otherwise show the prompt
+      if (!weatherData) return;
+      const defaultScheduleWithLoc = {
+        ...DEFAULT_NO_ACTIVITY_SCHEDULE,
+        location: activeChild.location || weatherData?.locationName || currentCoords.name || 'London, UK',
+      };
+      const activitiesToPlan = activeSchedulesForDay.length > 0 ? activeSchedulesForDay : [defaultScheduleWithLoc];
+      const cacheKey = computeSuggestionCacheKey(activeChild, activitiesToPlan, tomorrowStr);
+      const cached = getCachedSuggestion(activeChild.id, cacheKey, tomorrowStr);
+      if (cached) {
+        setAiPlanByDate((prev) => ({ ...prev, [tomorrowStr]: cached.plan }));
+        setIsAiCached(true);
+        setAiTimestamp(cached.timestamp);
+      }
+      return;
+    }
+
     loadAiSuggestion(false);
-  }, [loadAiSuggestion, selectedDay]);
+  }, [loadAiSuggestion, selectedDay, weatherData, activeChild, activeSchedulesForDay, currentCoords.name, tomorrowStr]);
 
   const handleToggleUnit = () => {
     setTemperatureUnit((prev) => (prev === 'C' ? 'F' : 'C'));
