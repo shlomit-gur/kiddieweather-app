@@ -56,7 +56,7 @@ The AI is called only when needed (activity or profile changes), and results are
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/kiddieweather-app.git
+git clone https://github.com/shlomit-gur/kiddieweather-app.git
 cd kiddieweather-app
 npm install
 ```
