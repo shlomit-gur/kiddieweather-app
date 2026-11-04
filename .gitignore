@@ -1,5 +1,6 @@
 node_modules/
 android/local.properties
+android/app/release/
 build/
 dist/
 coverage/
